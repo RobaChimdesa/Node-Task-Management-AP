@@ -8,14 +8,18 @@ datasource db {
 }
 
 model User {
-  id         Int        @id @default(autoincrement())
-  name       String
-  email      String     @unique
-  password   String
-  tasks      Task[]
-  categories Category[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  password    String
+  role        Role     @default(USER)     // ← This line must exist
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks       Task[]
+  categories  Category[]
+
+  @@map("users")
 }
 
 model Category {
@@ -44,6 +48,11 @@ model Task {
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 enum Status {
