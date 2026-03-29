@@ -12,6 +12,6 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": false
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/schemas/task.schema.ts"],
   "exclude": ["node_modules", "dist"]
 }
