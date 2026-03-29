@@ -8,6 +8,7 @@ import categoryRouter from './routes/category.routes.js';
 
 
 const app = express();
+const PORT = 3000
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -17,9 +18,13 @@ app.use('/profile', profileRouter)
 app.use('/tasks', taskRouter);
 app.use('/categories', categoryRouter);
 
-const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => {
-  res.send('Hello World');
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Server is healthy',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.listen(PORT, () => {
