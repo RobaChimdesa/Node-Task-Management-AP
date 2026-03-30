@@ -1,0 +1,1 @@
+web: npm run build && npm run prisma:migrate && npm start
