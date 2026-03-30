@@ -1,22 +1,21 @@
-FROM node:20-alpine
-
-# Install dependencies for Prisma
-RUN apk add --no-cache openssl libc6-compat
+FROM node:20-alpine AS builder
 
 WORKDIR /app
-
 COPY package*.json ./
-COPY prisma ./prisma  
 RUN npm ci
 
 COPY . .
-
-RUN npx prisma generate
 RUN npm run build
+
+FROM node:20-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
 
-# Start the application
-# We run migrations first. Seeding is skipped by default to speed up startup.
-# Set SEED=true environment variable if you want to seed on startup.
-CMD ["sh", "-c", "echo 'Starting migrations...' && npx prisma migrate deploy && if [ \"$SEED\" = \"true\" ]; then echo 'Seeding database...' && npx prisma db seed; fi && echo 'Starting server...' && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
