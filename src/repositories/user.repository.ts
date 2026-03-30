@@ -13,7 +13,7 @@ export const createUserRepo = async (data: {
       email: data.email,
       password: data.password,
       name: data.name,
-      role: data.role ?? 'USER',     // Safe default
+      role: data.role ?? Role.USER,     // Safe default
     },
   });
 };
