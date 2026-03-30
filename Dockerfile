@@ -1,37 +1,22 @@
-# ==================== BUILD STAGE ====================
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install all dependencies (including dev)
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Generate Prisma Client + Build TypeScript
-RUN npm run build
-
-# ==================== PRODUCTION STAGE ====================
 FROM node:20-alpine
 
+# Install dependencies for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
+COPY prisma ./prisma  
+RUN npm ci
 
-# Install only production dependencies
-RUN npm ci --only=production
+COPY . .
 
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
+RUN npx prisma generate
+RUN npm run build
 
-# Expose port
 EXPOSE 3000
 
-# Run migrations and start the app
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
+# Start the application
+# We run migrations first. Seeding is skipped by default to speed up startup.
+# Set SEED=true environment variable if you want to seed on startup.
+CMD ["sh", "-c", "echo 'Starting migrations...' && npx prisma migrate deploy && if [ \"$SEED\" = \"true\" ]; then echo 'Seeding database...' && npx prisma db seed; fi && echo 'Starting server...' && node dist/server.js"]
