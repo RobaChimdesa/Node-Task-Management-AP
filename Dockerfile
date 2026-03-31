@@ -19,4 +19,4 @@ EXPOSE 3000
 # Start the application
 # We run migrations first. Seeding is skipped by default to speed up startup.
 # Set SEED=true environment variable if you want to seed on startup.
-CMD ["sh", "-c", "echo 'Starting migrations...' && npx prisma migrate deploy && if [ \"$SEED\" = \"true\" ]; then echo 'Seeding database...' && npx prisma db seed; fi && echo 'Starting server...' && node dist/server.js"]
+CMD ["sh", "-c", "echo 'Starting migrations...' && npx prisma migrate deploy && if [ \"$SEED\" = \"true\" ]; then echo 'Seeding database...' && npx prisma db seed; fi && echo 'Starting server...' &&  dist/server.js"]
