@@ -2,26 +2,66 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run db:generate
+
+      - name: Run TypeScript Build
+        run: npm run build
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Run Coverage
+        run: npm run coverage
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Run Prisma Generate
-        run: npx prisma generate
+      - name: Generate Prisma Client
+        run: npm run db:generate
 
       - name: Build app
         run: npm run build
+
+      # Add your deployment step here (Railway, Render, etc.)
+      # Example for Railway:
+      # - name: Deploy to Railway
+      #   uses: railwayapp/railway-action@v1
+      #   with:
+      #     token: ${{ secrets.RAILWAY_TOKEN }}
+      #     service: ${{ secrets.RAILWAY_SERVICE_ID }}
