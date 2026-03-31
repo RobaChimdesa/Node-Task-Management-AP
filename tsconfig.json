@@ -1,17 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
     "resolveJsonModule": true,
-    "verbatimModuleSyntax": false
+    // "moduleResolution": "node",
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"]
   },
-  "include": ["src/**/*", "src/schemas/task.schema.ts","src/types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src//*"],
+  "exclude": ["node_modules", "dist", "tests", "/*.test.ts", "**/*.spec.ts", "scripts"]
 }
