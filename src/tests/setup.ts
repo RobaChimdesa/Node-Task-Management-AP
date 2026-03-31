@@ -1,29 +1,24 @@
-// src/tests/setup.ts
 import { beforeAll, afterAll } from 'vitest';
-import dotenv from 'dotenv';
-import prisma from '../prisma/client.js';
-
-dotenv.config();
+import prisma from '../config/prisma';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
 beforeAll(async () => {
-  console.log('🧹 Setting up test environment...');
-
-  // Skip database cleaning if using SQLite in CI (or if no real DB)
-  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('file:')) {
-    try {
-      await prisma.task.deleteMany();
-      await prisma.category.deleteMany();
-      await prisma.user.deleteMany();
-      console.log('✅ Test database cleaned');
-    } catch (error) {
-      console.warn('⚠️ Could not clean database (normal in CI)');
-    }
-  } else {
-    console.log('Using SQLite for tests');
-  }
+  // Before running tests, maybe run migrations or check db connection?
+  await prisma.$connect();
 });
 
 afterAll(async () => {
+  const deleteTasks = prisma.task.deleteMany();
+  const deleteCategories = prisma.category.deleteMany();
+  const deleteUsers = prisma.user.deleteMany();
+
+  await prisma.$transaction([deleteTasks, deleteCategories, deleteUsers]);
   await prisma.$disconnect();
-  console.log('✅ Prisma disconnected');
 });
+
+export const getAuthToken = (userId: number, email: string) => {
+  return jwt.sign({ id: userId, email }, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN as any,
+  });
+};

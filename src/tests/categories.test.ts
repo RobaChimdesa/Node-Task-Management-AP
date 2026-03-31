@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
-import app  from '../app';
-// import { prisma } from '../config/prisma';
-import prisma from '../prisma/client';
+import  app  from '../app';
+import  prisma  from '../config/prisma';
 import bcrypt from 'bcrypt';
 import { getAuthToken } from './setup';
 

@@ -1,5 +1,4 @@
 import { Prisma } from '@prisma/client';
-// import prisma from '../config/prisma';
 import prisma from '../config/prisma';
 import { CreateTaskInput, UpdateTaskInput, TaskQueryInput } from '../schemas/task.schema';
 

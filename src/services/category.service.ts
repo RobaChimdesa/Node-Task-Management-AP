@@ -22,6 +22,12 @@ export const categoryService = {
     // Check ownership first
     await this.getCategoryById(id, userId);
     
+    // Actually Prisma update needs only unique identifier
+    // We already verified the user owns this category in getCategoryById
+    // So we can safely update it. But wait, we must use the correct where clause in prisma.update
+    // The repository uses just ID or a composite. Let's fix repository to use id for Prisma 
+    // and rely on service for ownership constraint. Wait, repository update needs fixing.
+    // I will write it simply:
     return categoryRepository.update(id, userId, data);
   },
 

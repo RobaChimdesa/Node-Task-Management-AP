@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/node";
-// import { env } from "./env.js";
 import { env } from "./env";
 
 // Initialize once at startup so all downstream imports share the same client.

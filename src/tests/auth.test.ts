@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
-// import { app } from '../app';
-import app from '../app';
-// import { prisma } from '../config/prisma';
-import prisma from '../config/prisma';
-
-
+import  app  from '../app';
+import  prisma  from '../config/prisma';
 
 describe('Auth Module', () => {
   const credentials = {

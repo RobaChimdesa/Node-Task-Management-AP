@@ -1,5 +1,4 @@
-// import prisma from '../config/prisma';
-import prisma from '../prisma/client';
+import prisma from '../config/prisma';
 import { CreateCategoryInput, UpdateCategoryInput } from '../schemas/category.schema';
 
 export const categoryRepository = {
