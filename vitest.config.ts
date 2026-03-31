@@ -1,12 +1,20 @@
+// vitest.config.ts
 import { defineConfig } from 'vitest/config';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env' });   // Load .env for tests
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    testTimeout: 15000,
-    setupFiles: ['./src/tests/setup.ts'],
+    setupFiles: './src/tests/setup.ts',
     include: ['src/tests/**/*.test.ts'],
-    fileParallelism: false,
+
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      exclude: ['node_modules/**', 'dist/**', 'src/tests/**'],
+    },
   },
 });
