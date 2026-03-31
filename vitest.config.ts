@@ -11,7 +11,7 @@ export default defineConfig({
     setupFiles: './src/tests/setup.ts',
     include: ['src/tests/**/*.test.ts'],
 
-    // Use SQLite for tests in CI
+    // Use SQLite for tests (especially in CI)
     env: {
       DATABASE_URL: process.env.DATABASE_URL || 'file:./test.db',
     },
