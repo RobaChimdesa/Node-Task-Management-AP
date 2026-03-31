@@ -1,42 +1,42 @@
-import "dotenv/config";
-import express from "express";
+import './config/sentry'; // Initialize Sentry first
+import express from 'express';
+import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
-import specs from './config/swagger.js';
+import { swaggerSpec } from './config/swagger.js';
+import * as Sentry from '@sentry/node';
+const app = express();
 import authRouter from './routes/auth.routes.js';
-import profileRouter from './routes/profile.routes.js';
+// import profileRouter from './routes/profile.routes.js';
 import taskRouter from './routes/task.routes.js';
 import categoryRouter from './routes/category.routes.js';
-const app = express();
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
-    explorer: true,
-    customSiteTitle: 'Task Management API Docs',
-}));
-// Routes
-app.use('/auth', authRouter);
-app.use('/profile', profileRouter);
-app.use('/tasks', taskRouter);
-app.use('/categories', categoryRouter);
-// Health Check
+// app.use(pinoHttp({ logger }));
+// Health check
 app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK' });
+});
+app.get('/', (req, res) => {
     res.status(200).json({
-        status: 'success',
-        message: 'Server is healthy',
-        uptime: process.uptime(),
+        message: 'Welcome to the Task Management API',
+        version: '1.0.0',
+        documentation: '/api-docs',
+        health: '/health'
     });
 });
-// 404 Handler
-app.use((req, res) => {
-    res.status(404).json({
-        status: 'error',
-        message: 'Route not found',
-    });
+app.get('/debug-sentry', (req, res) => {
+    throw new Error('Sentry Debug Error');
 });
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📖 Swagger Docs available at http://localhost:${PORT}/api-docs`);
-});
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Mount routes
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/tasks', taskRouter);
+app.use('/api/v1/categories', categoryRouter);
+// import { notFoundHandler } from './middleware/notFound';
+import { notFoundHandler } from './middleware/notFound.js';
+import { errorHandler } from './middleware/errorHandler.js';
+app.use(notFoundHandler);
+// The Sentry error handler must be registered before any other error middleware and after all controllers
+Sentry.setupExpressErrorHandler(app);
+app.use(errorHandler);
 export default app;
