@@ -1,36 +1,61 @@
-// src/controllers/category.controller.ts
-import { Request, Response } from 'express';
-import {
-  createCategoryService,
-  getCategoriesService,
-} from '../services/category.service.js';
+import { Request, Response, NextFunction } from 'express';
+import { categoryService } from '../services/category.service';
 
-export const createCategory = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) throw new Error("User ID not found");
+export const categoryController = {
+  async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await categoryService.createCategory(req.user!.id, req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 
-    const response = await createCategoryService(userId, req.body);
-    res.status(201).json(response);
-  } catch (err: any) {
-    res.status(400).json({
-      status: "error",
-      message: err.message || "Failed to create category",
-    });
-  }
-};
+  async getAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await categoryService.getCategories(req.user!.id);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 
-export const getCategories = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) throw new Error("User ID not found");
+  async getOne(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      const result = await categoryService.getCategoryById(id, req.user!.id);
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Category not found') {
+        return res.status(404).json({ message: error.message });
+      }
+      next(error);
+    }
+  },
 
-    const response = await getCategoriesService(userId);
-    res.json(response);
-  } catch (err: any) {
-    res.status(400).json({
-      status: "error",
-      message: err.message || "Failed to fetch categories",
-    });
-  }
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      const result = await categoryService.updateCategory(id, req.user!.id, req.body);
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Category not found') {
+        return res.status(404).json({ message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      await categoryService.deleteCategory(id, req.user!.id);
+      res.status(204).end();
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Category not found') {
+        return res.status(404).json({ message: error.message });
+      }
+      next(error);
+    }
+  },
 };

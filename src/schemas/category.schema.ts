@@ -1,6 +1,18 @@
 import { z } from 'zod';
 
 export const createCategorySchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(50).trim(),
-  description: z.string().max(500).optional(),
-}).strict();
+  body: z.object({
+    name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
+    description: z.string().optional(),
+  }),
+});
+
+export const updateCategorySchema = z.object({
+  body: z.object({
+    name: z.string().min(1, 'Name is required').max(100, 'Name is too long').optional(),
+    description: z.string().optional(),
+  }),
+});
+
+export type CreateCategoryInput = z.infer<typeof createCategorySchema>['body'];
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>['body'];

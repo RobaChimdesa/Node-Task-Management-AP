@@ -1,7 +1,7 @@
 // src/routes/profile.routes.ts
 import { Router } from 'express';
 import { getProfile, updateProfile } from '../controllers/profile.controller.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate } from '../middleware/autho.js';
 import { validate } from '../middleware/validate.js';
 import { updateProfileSchema } from '../schemas/profile.schema.js';
 

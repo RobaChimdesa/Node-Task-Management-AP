@@ -1,81 +1,29 @@
-// src/routes/task.routes.ts
 import { Router } from 'express';
-import {
-    createTask,
-    getTasks,
-    getTaskById,
-    updateTask,
-    deleteTask,
-} from '../controllers/task.controller.js';
-import { authenticate } from '../middleware/auth.js';
-import { validate } from '../middleware/validate.js';
-import {
-    createTaskSchema,
-    updateTaskSchema,
-    taskQuerySchema,
-} from '../schemas/task.schema.js';
+import { taskController } from '../controllers/task.controller';
+import { validate } from '../middleware/validate';
+import { authMiddleware } from '../middleware/auth';
+import { createTaskSchema, updateTaskSchema, taskQuerySchema } from '../schemas/task.schema';
 
-const router = Router();
+export const taskRoutes = Router();
 
-// Protect all task routes
-router.use(authenticate);
+// Apply auth middleware to all task routes
+taskRoutes.use(authMiddleware);
+
 /**
- * @openapi
- * /tasks:
- *   post:
- *     summary: Create a new task
- *     description: Create a task for the authenticated user
- *     tags: [Tasks]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *                 example: "Finish project documentation"
- *               description:
- *                 type: string
- *                 example: "Complete the final report"
- *               status:
- *                 type: string
- *                 enum: [TODO, IN_PROGRESS, DONE]
- *                 example: "TODO"
- *               priority:
- *                 type: string
- *                 enum: [LOW, MEDIUM, HIGH]
- *                 example: "HIGH"
- *               dueDate:
- *                 type: string
- *                 format: date-time
- *                 example: "2026-04-30T23:59:59Z"
- *               categoryId:
- *                 type: integer
- *                 example: 1
- *     responses:
- *       201:
- *         description: Task created successfully
- *       400:
- *         description: Validation error
- *       401:
- *         description: Unauthorized
+ * @swagger
+ * tags:
+ *   name: Tasks
+ *   description: Task management
  */
 
-router.post('/', validate(createTaskSchema), createTask);
-
 /**
- * @openapi
- * /tasks:
+ * @swagger
+ * /api/v1/tasks:
  *   get:
- *     summary: Get all tasks
- *     description: Retrieve tasks with optional filtering and pagination
+ *     summary: Get tasks with filtering and pagination
  *     tags: [Tasks]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: status
@@ -92,6 +40,11 @@ router.post('/', validate(createTaskSchema), createTask);
  *         schema:
  *           type: integer
  *       - in: query
+ *         name: search
+ *         description: Search text in title or description
+ *         schema:
+ *           type: string
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer
@@ -101,22 +54,68 @@ router.post('/', validate(createTaskSchema), createTask);
  *         schema:
  *           type: integer
  *           default: 10
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, dueDate, title, priority]
+ *           default: createdAt
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
  *     responses:
  *       200:
- *         description: List of tasks with pagination
- *       401:
- *         description: Unauthorized
- */
-router.get('/', validate(taskQuerySchema, 'query'), getTasks);
-/**
- * @openapi
- * /tasks/{id}:
- *   get:
- *     summary: Get task by ID
- *     description: Retrieve a single task by its ID
+ *         description: Paginated list of tasks
+ *   post:
+ *     summary: Create a new task
  *     tags: [Tasks]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [TODO, IN_PROGRESS, DONE]
+ *               priority:
+ *                 type: string
+ *                 enum: [LOW, MEDIUM, HIGH]
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *               categoryId:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Task created
+ *       400:
+ *         description: Validation error or invalid categoryId
+ */
+taskRoutes.route('/')
+  .get(validate(taskQuerySchema), taskController.getAll)
+  .post(validate(createTaskSchema), taskController.create);
+
+/**
+ * @swagger
+ * /api/v1/tasks/{id}:
+ *   get:
+ *     summary: Get task by ID
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -128,19 +127,11 @@ router.get('/', validate(taskQuerySchema, 'query'), getTasks);
  *         description: Task details
  *       404:
  *         description: Task not found
- *       401:
- *         description: Unauthorized
- */
-router.get('/:id', getTaskById);
-/**
- * @openapi
- * /tasks/{id}:
  *   put:
  *     summary: Update a task
- *     description: Update an existing task
  *     tags: [Tasks]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -169,25 +160,18 @@ router.get('/:id', getTaskById);
  *                 format: date-time
  *               categoryId:
  *                 type: integer
- *                 nullable: true
  *     responses:
  *       200:
- *         description: Task updated successfully
- *       400:
- *         description: Validation error
+ *         description: Task updated
  *       404:
  *         description: Task not found
- */
-router.put('/:id', validate(updateTaskSchema), updateTask);
-/**
- * @openapi
- * /tasks/{id}:
+ *       400:
+ *         description: Invalid categoryId
  *   delete:
  *     summary: Delete a task
- *     description: Delete a task by ID
  *     tags: [Tasks]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -195,13 +179,12 @@ router.put('/:id', validate(updateTaskSchema), updateTask);
  *         schema:
  *           type: integer
  *     responses:
- *       200:
- *         description: Task deleted successfully
+ *       204:
+ *         description: Task deleted
  *       404:
  *         description: Task not found
- *       401:
- *         description: Unauthorized
  */
-router.delete('/:id', deleteTask);
-
-export default router;
+taskRoutes.route('/:id')
+  .get(taskController.getOne)
+  .put(validate(updateTaskSchema), taskController.update)
+  .delete(taskController.delete);

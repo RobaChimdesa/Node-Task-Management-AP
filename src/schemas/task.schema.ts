@@ -1,27 +1,40 @@
 import { z } from 'zod';
 
 export const createTaskSchema = z.object({
-    title: z.string().min(3, "Title must be at least 3 characters").max(200),
-    description: z.string().max(1000).optional(),
-    status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).default('TODO'),
-    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).default('MEDIUM'),
-    dueDate: z.string().datetime().optional().or(z.literal('')),
-    categoryId: z.number().int().positive().optional(),
-  }).strict();
-  
-  export const updateTaskSchema = z.object({
-    title: z.string().min(3).max(200).optional(),
-    description: z.string().max(1000).optional(),
+  body: z.object({
+    title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
+    description: z.string().optional(),
     status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
-    dueDate: z.string().datetime().optional().or(z.literal('')),
+    dueDate: z.string().datetime().optional().nullable(),
     categoryId: z.number().int().positive().optional().nullable(),
-  }).strict();
-  
-  export const taskQuerySchema = z.object({
+  }),
+});
+
+export const updateTaskSchema = z.object({
+  body: z.object({
+    title: z.string().min(1, 'Title is required').max(200, 'Title is too long').optional(),
+    description: z.string().optional(),
     status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
-    categoryId: z.coerce.number().int().positive().optional(),
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().default(10),
-  }).strict();
+    dueDate: z.string().datetime().optional().nullable(),
+    categoryId: z.number().int().positive().optional().nullable(),
+  }),
+});
+
+export const taskQuerySchema = z.object({
+  query: z.object({
+    status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+    categoryId: z.coerce.number().optional(),
+    search: z.string().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    sortBy: z.enum(['createdAt', 'dueDate', 'title', 'priority']).default('createdAt'),
+    order: z.enum(['asc', 'desc']).default('desc'),
+  }),
+});
+
+export type CreateTaskInput = z.infer<typeof createTaskSchema>['body'];
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>['body'];
+export type TaskQueryInput = z.infer<typeof taskQuerySchema>['query'];

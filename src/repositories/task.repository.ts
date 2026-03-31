@@ -1,75 +1,77 @@
-import prisma from '../prisma/client.js';
+import { Prisma } from '@prisma/client';
+// import prisma from '../config/prisma';
+import prisma from '../config/prisma';
+import { CreateTaskInput, UpdateTaskInput, TaskQueryInput } from '../schemas/task.schema';
 
-export const createTaskRepo = async (data: {
-  title: string;
-  description?: string;
-  status?: string;
-  priority?: string;
-  dueDate?: Date | null;
-  userId: number;
-  categoryId?: number | null;
-}) => {
-  return prisma.task.create({
-    data: {
-      title: data.title,
-      description: data.description,
-      status: data.status as any,
-      priority: data.priority as any,
-      dueDate: data.dueDate,
-      userId: data.userId,
-      categoryId: data.categoryId,
-    },
-    include: {
-      category: true,
-    },
-  });
-};
+export const taskRepository = {
+  async create(userId: number, data: CreateTaskInput) {
+    return prisma.task.create({
+      data: {
+        ...data,
+        userId,
+      },
+      include: {
+        category: true,
+      },
+    });
+  },
 
-export const findTasksByUserRepo = async (userId: number, filters: any = {}) => {
-  const { status, priority, categoryId, page = 1, limit = 10 } = filters;
-
-  const skip = (page - 1) * limit;
-
-  const where: any = { userId };
-
-  if (status) where.status = status;
-  if (priority) where.priority = priority;
-  if (categoryId) where.categoryId = categoryId;
-
-  const [tasks, total] = await Promise.all([
-    prisma.task.findMany({
-      where,
+  async findByIdAndUserId(id: number, userId: number) {
+    return prisma.task.findFirst({
+      where: { id, userId },
       include: { category: true },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-    }),
-    prisma.task.count({ where }),
-  ]);
+    });
+  },
 
-  return { tasks, total, page, limit };
-};
+  async update(id: number, userId: number, data: UpdateTaskInput) {
+    return prisma.task.update({
+      where: { id }, // ownership checked in service
+      data,
+      include: { category: true },
+    });
+  },
 
-export const findTaskByIdRepo = async (id: number, userId: number) => {
-  return prisma.task.findFirst({
-    where: { id, userId },
-    include: { category: true },
-  });
-};
+  async delete(id: number, userId: number) {
+    return prisma.task.delete({
+      where: { id }, // ownership checked in service
+    });
+  },
 
-export const updateTaskRepo = async (id: number, userId: number, data: any) => {
-  return prisma.task.update({
-    where: { id, userId },
-    data: {
-      ...data,
-      dueDate: data.dueDate ? new Date(data.dueDate) : null,
-    },
-    include: { category: true },
-  });
-};
+  async findManyWithPagination(userId: number, query: TaskQueryInput) {
+    const { status, priority, categoryId, search, sortBy, order } = query;
+    const page = parseInt(query.page as any, 10) || 1;
+    const limit = parseInt(query.limit as any, 10) || 10;
 
-export const deleteTaskRepo = async (id: number, userId: number) => {
-  return prisma.task.delete({
-    where: { id, userId },
-  });
+    const where: Prisma.TaskWhereInput = {
+      userId,
+      ...(status && { status }),
+      ...(priority && { priority }),
+      ...(categoryId && { categoryId }),
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const orderBy: Prisma.TaskOrderByWithRelationInput = sortBy ? {
+      [sortBy]: order || 'asc',
+    } : { createdAt: 'desc' };
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      prisma.task.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: { category: true },
+      }),
+      prisma.task.count({ where }),
+    ]);
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  },
 };

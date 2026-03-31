@@ -1,30 +1,36 @@
-// src/middleware/auth.ts
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/auth.js';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        status: "error",
-        message: "No token provided. Please login first."
-      });
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id: number; email: string };
     }
+  }
+}
 
-    const token = authHeader.split(' ')[1];
+export const authMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const authHeader = req.headers.authorization;
 
-    const decoded = verifyToken(token);
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized: No token provided' });
+  }
 
-    // Attach user info to request object
-    (req as any).user = decoded;
+  const token = authHeader.split(' ')[1];
 
-    next(); // Continue to the next middleware or controller
-  } catch (err: any) {
-    return res.status(401).json({
-      status: "error",
-      message: "Invalid or expired token. Please login again."
-    });
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as {
+      id: number;
+      email: string;
+    };
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Unauthorized: Invalid token' });
   }
 };

@@ -1,34 +1,38 @@
-import { Request, Response } from 'express';
-import { registerService, loginService } from '../services/auth.service.js';
+import { Request, Response, NextFunction } from 'express';
+import { authService } from '../services/auth.service';
 
-export const register = async (req: Request, res: Response) => {
-  try {
-    const user = await registerService(req.body);
-    res.status(201).json({
-      status: 'success',
-      message: 'User registered successfully',
-      data: user,
-    });
-  } catch (err: any) {
-    res.status(400).json({
-      status: 'error',
-      message: err.message,
-    });
-  }
-};
+export const authController = {
+  async register(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.register(req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 
-export const login = async (req: Request, res: Response) => {
-  try {
-    const result = await loginService(req.body.email, req.body.password);
-    res.json({
-      status: 'success',
-      message: 'Login successful',
-      ...result,
-    });
-  } catch (err: any) {
-    res.status(401).json({
-      status: 'error',
-      message: err.message,
-    });
-  }
+  async login(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.login(req.body);
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Invalid credentials') {
+        return res.status(401).json({ message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  async getProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const user = await authService.getProfile(userId);
+      res.status(200).json({ user });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'User not found') {
+        return res.status(404).json({ message: error.message });
+      }
+      next(error);
+    }
+  },
 };

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
-import { logger } from '../config/logger.js';
+import { logger } from '../config/logger';
 
 export const errorHandler = (
   err: Error,

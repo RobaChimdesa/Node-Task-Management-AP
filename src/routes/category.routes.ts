@@ -1,26 +1,92 @@
-// src/routes/category.routes.ts
 import { Router } from 'express';
-import {
-  createCategory,
-  getCategories,
-} from '../controllers/category.controller.js';
-import { authenticate } from '../middleware/auth.js';
-import { validate } from '../middleware/validate.js';
-import { createCategorySchema } from '../schemas/category.schema.js';
+import { categoryController } from '../controllers/category.controller';
+import { validate } from '../middleware/validate';
+import { authMiddleware } from '../middleware/auth';
+import { createCategorySchema, updateCategorySchema } from '../schemas/category.schema';
 
-const router = Router();
+export const categoryRoutes = Router();
 
-router.use(authenticate);
+// Apply auth middleware to all category routes
+categoryRoutes.use(authMiddleware);
 
 /**
- * @openapi
- * /categories:
- *   post:
- *     summary: Create a new category
- *     description: Create a category for the authenticated user
+ * @swagger
+ * tags:
+ *   name: Categories
+ *   description: Category management
+ */
+
+/**
+ * @swagger
+ * /api/v1/categories:
+ *   get:
+ *     summary: Get all categories for current user
  *     tags: [Categories]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of categories
+ *   post:
+ *     summary: Create a new category
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Category created
+ *       400:
+ *         description: Validation error
+ *       409:
+ *         description: Category name already exists for this user
+ */
+categoryRoutes.route('/')
+  .get(categoryController.getAll)
+  .post(validate(createCategorySchema), categoryController.create);
+
+/**
+ * @swagger
+ * /api/v1/categories/{id}:
+ *   get:
+ *     summary: Get category by ID
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Category details
+ *       404:
+ *         description: Category not found
+ *   put:
+ *     summary: Update a category
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -30,34 +96,31 @@ router.use(authenticate);
  *             properties:
  *               name:
  *                 type: string
- *                 example: "Work"
  *               description:
  *                 type: string
- *                 example: "All work-related tasks"
- *     responses:
- *       201:
- *         description: Category created successfully
- *       400:
- *         description: Validation error
- *       401:
- *         description: Unauthorized
- */
-router.post('/', validate(createCategorySchema), createCategory);
-/**
- * @openapi
- * /categories:
- *   get:
- *     summary: Get all categories
- *     description: Retrieve all categories belonging to the authenticated user
- *     tags: [Categories]
- *     security:
- *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: List of categories
- *       401:
- *         description: Unauthorized
+ *         description: Category updated
+ *       404:
+ *         description: Category not found
+ *   delete:
+ *     summary: Delete a category
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Category deleted
+ *       404:
+ *         description: Category not found
  */
-router.get('/', getCategories);
-
-export default router;
+categoryRoutes.route('/:id')
+  .get(categoryController.getOne)
+  .put(validate(updateCategorySchema), categoryController.update)
+  .delete(categoryController.delete);

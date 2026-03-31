@@ -1,103 +1,61 @@
-// // src/services/auth.service.ts
-// import { hashPassword, comparePassword, generateToken } from '../utils/auth.js';
-// import { createUserRepo, findUserByEmailRepo } from '../repositories/user.repository.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { userRepository } from '../repositories/user.repository';
+import { RegisterInput, LoginInput } from '../schemas/auth.schema';
+import { env } from '../config/env';
+import { Prisma } from '@prisma/client';
 
-// export const registerService = async (data: { 
-//   email: string; 
-//   password: string; 
-//   name?: string 
-// }) => {
-//   const existing = await findUserByEmailRepo(data.email);
-//   if (existing) throw new Error('Email already exists');
+export const authService = {
+  async register(data: RegisterInput) {
+    const existingUser = await userRepository.findByEmail(data.email);
+    if (existingUser) {
+      const error = new Prisma.PrismaClientKnownRequestError('User exists', {
+        code: 'P2002',
+        clientVersion: '7',
+      });
+      throw error;
+    }
 
-//   const hashedPassword = await hashPassword(data.password);
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const user = await userRepository.createUser({
+      ...data,
+      password: hashedPassword,
+    });
 
-//   const user = await createUserRepo({
-//     email: data.email,
-//     password: hashedPassword,
-//     name: data.name,
-//   });
+    const token = jwt.sign({ id: user.id, email: user.email }, env.JWT_SECRET, {
+      expiresIn: env.JWT_EXPIRES_IN as any,
+    });
 
-//   return {
-//     id: user.id,
-//     email: user.email,
-//     name: user.name,
-//     role: user.role,
-//   };
-// };
+    // Omit password from response
+    const { password, ...userWithoutPassword } = user;
+    return { user: userWithoutPassword, token };
+  },
 
-// export const loginService = async (email: string, password: string) => {
-//   const user = await findUserByEmailRepo(email);
-//   if (!user) throw new Error('Invalid email or password');
+  async login(data: LoginInput) {
+    const user = await userRepository.findByEmail(data.email);
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
 
-//   const isMatch = await comparePassword(password, user.password);
-//   if (!isMatch) throw new Error('Invalid email or password');
+    const isValidPassword = await bcrypt.compare(data.password, user.password);
+    if (!isValidPassword) {
+      throw new Error('Invalid credentials');
+    }
 
-//   const token = generateToken({
-//     id: user.id,
-//     email: user.email,
-//     role: user.role,
-//   });
+    const token = jwt.sign({ id: user.id, email: user.email }, env.JWT_SECRET, {
+      expiresIn: env.JWT_EXPIRES_IN as any,
+    });
 
-//   return {
-//     token,
-//     user: {
-//       id: user.id,
-//       email: user.email,
-//       name: user.name,
-//       role: user.role,
-//     },
-//   };
-// };
+    const { password, ...userWithoutPassword } = user;
+    return { user: userWithoutPassword, token };
+  },
 
-// src/services/auth.service.ts
-import { hashPassword, comparePassword, generateToken } from '../utils/auth.js';
-import { createUserRepo, findUserByEmailRepo } from '../repositories/user.repository.js';
-
-export const registerService = async (data: { 
-  email: string; 
-  password: string; 
-  name?: string 
-}) => {
-  const existing = await findUserByEmailRepo(data.email);
-  if (existing) throw new Error('Email already exists');
-
-  const hashedPassword = await hashPassword(data.password);
-
-  const user = await createUserRepo({
-    email: data.email,
-    password: hashedPassword,
-    name: data.name,
-  });
-
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-  };
-};
-
-export const loginService = async (email: string, password: string) => {
-  const user = await findUserByEmailRepo(email);
-  if (!user) throw new Error('Invalid email or password');
-
-  const isMatch = await comparePassword(password, user.password);
-  if (!isMatch) throw new Error('Invalid email or password');
-
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
-
-  return {
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    },
-  };
+  async getProfile(userId: number) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  },
 };

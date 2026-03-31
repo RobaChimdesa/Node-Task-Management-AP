@@ -1,30 +1,25 @@
-// src/tests/setup.ts
 import { beforeAll, afterAll } from 'vitest';
-import dotenv from 'dotenv';
-import prisma from '../prisma/client.js';
-
-// Load .env file BEFORE importing prisma
-dotenv.config({ path: '.env' });
+// import prisma from '../config/prisma';
+import prisma from '../config/prisma';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
 beforeAll(async () => {
-  console.log('🧹 Setting up test environment...');
-
-  if (!process.env.DATABASE_URL) {
-    console.warn('⚠️  DATABASE_URL is not defined. Tests may fail.');
-  }
-
-  // Optional: Clean database before tests
-  try {
-    await prisma.task.deleteMany();
-    await prisma.category.deleteMany();
-    await prisma.user.deleteMany();
-    console.log('✅ Database cleaned successfully');
-  } catch (error) {
-    console.warn('⚠️ Could not clean database (this is okay for first run)');
-  }
+  // Before running tests, maybe run migrations or check db connection?
+  await prisma.$connect();
 });
 
 afterAll(async () => {
-  console.log('✅ Tests completed. Disconnecting...');
+  const deleteTasks = prisma.task.deleteMany();
+  const deleteCategories = prisma.category.deleteMany();
+  const deleteUsers = prisma.user.deleteMany();
+
+  await prisma.$transaction([deleteTasks, deleteCategories, deleteUsers]);
   await prisma.$disconnect();
 });
+
+export const getAuthToken = (userId: number, email: string) => {
+  return jwt.sign({ id: userId, email }, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN as any,
+  });
+};

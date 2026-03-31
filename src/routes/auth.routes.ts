@@ -1,13 +1,21 @@
 import { Router } from 'express';
-import { register, login } from '../controllers/auth.controller.js';
-import { validate } from '../middleware/validate.js';
-import { registerSchema, loginSchema } from '../schemas/auth.schema.js';
+import { authController } from '../controllers/auth.controller';
+import { validate } from '../middleware/validate';
+import { authMiddleware } from '../middleware/auth';
+import { registerSchema, loginSchema } from '../schemas/auth.schema';
 
-const router = Router();
+export const authRoutes = Router();
 
 /**
- * @openapi
- * /auth/register:
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication management
+ */
+
+/**
+ * @swagger
+ * /api/v1/auth/register:
  *   post:
  *     summary: Register a new user
  *     tags: [Auth]
@@ -17,28 +25,33 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
  *             properties:
  *               name:
  *                 type: string
- *                 example: "Roba Test"
  *               email:
  *                 type: string
- *                 example: "roba.test@example.com"
+ *                 format: email
  *               password:
  *                 type: string
- *                 example: "password123"
+ *                 format: password
+ *                 minLength: 8
  *     responses:
  *       201:
  *         description: User registered successfully
  *       400:
- *         description: Validation error or email already exists
+ *         description: Validation error
+ *       409:
+ *         description: Email already in use
  */
-
-router.post('/register', validate(registerSchema), register);
+authRoutes.post('/register', validate(registerSchema), authController.register);
 
 /**
- * @openapi
- * /auth/login:
+ * @swagger
+ * /api/v1/auth/login:
  *   post:
  *     summary: Login user
  *     tags: [Auth]
@@ -48,19 +61,36 @@ router.post('/register', validate(registerSchema), register);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
  *             properties:
  *               email:
  *                 type: string
- *                 example: "roba.test@example.com"
+ *                 format: email
  *               password:
  *                 type: string
- *                 example: "password123"
+ *                 format: password
  *     responses:
  *       200:
- *         description: Login successful, returns JWT token
+ *         description: Login successful
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', validate(loginSchema), login);
+authRoutes.post('/login', validate(loginSchema), authController.login);
 
-export default router;
+/**
+ * @swagger
+ * /api/v1/auth/profile:
+ *   get:
+ *     summary: Get user profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns user profile
+ *       401:
+ *         description: Unauthorized
+ */
+authRoutes.get('/profile', authMiddleware, authController.getProfile);
