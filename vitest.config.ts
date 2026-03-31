@@ -2,7 +2,7 @@
 import { defineConfig } from 'vitest/config';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '.env' });   // Load .env for tests
+dotenv.config();
 
 export default defineConfig({
   test: {
@@ -10,6 +10,11 @@ export default defineConfig({
     environment: 'node',
     setupFiles: './src/tests/setup.ts',
     include: ['src/tests/**/*.test.ts'],
+
+    // Use SQLite for tests in CI
+    env: {
+      DATABASE_URL: process.env.DATABASE_URL || 'file:./test.db',
+    },
 
     coverage: {
       provider: 'v8',
